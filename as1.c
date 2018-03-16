@@ -4,7 +4,8 @@
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/string.h>
-#include <linux/init.h>
+#include <linux/fs.h>
+#include <asm/uaccess.h>
 
 static int s_open(struct inode *, struct file *);
 static int s_close(struct inode *, struct file *);
@@ -17,10 +18,11 @@ static struct file_operations fops =
 	.open = s_open,
 	.release = s_close,
 	.read = s_read,
-	.write = s_write
+	.write = s_write,
 };
 
 static int majorNum;
+static char buff[100] = {0};
 static int readLoc = 0;
 
 int init_module(void)
@@ -37,10 +39,9 @@ int init_module(void)
 	else
 	{
 		//Device registration was successful
-
 		majorNum = regVal;
 
-		printk(KERN_ALERT "Device has been registered. Major number: %d.\n", &majorNum);
+		printk(KERN_ALERT "Device has been registered. Major number: %d.\n", majorNum);
 		return 0;
 	}
 }
@@ -48,7 +49,7 @@ int init_module(void)
 void cleanup_module(void)
 {
 	//Unregister the module
-	printk(KERN_ALERT "Unregistered device %d.\n", &majorNum);
+	printk(KERN_ALERT "Unregistered device %d.\n", majorNum);
 	unregister_chrdev(majorNum, "as1");
 }
 
@@ -66,14 +67,14 @@ static int s_close(struct inode *node, struct file *f)
 
 static ssize_t s_read(struct file *f, char *arr, size_t length, loff_t *off)
 {
-	printk(KERN_ALERT "Device read.\n");
-
 	int count = 0;
 
-	while(length && (msg[readLoc] != 0))
+	printk(KERN_ALERT "Device read.\n");
+
+	while(length && (buff[readLoc] != 0))
 	{
 		//Copies the byte to the user space
-		put_user(msg[readLoc], arr++);
+		put_user(buff[readLoc], arr++);
 
 		count++;
 		length--;
@@ -85,17 +86,18 @@ static ssize_t s_read(struct file *f, char *arr, size_t length, loff_t *off)
 
 static ssize_t s_write(struct file *f, const char *arr, size_t length, loff_t *off)
 {
-	printk(KERN_ALERT "Device write.\n");
-
 	int index = length-1;
 	int count = 0;
-	memset(msg, 0, 100);
 	readLoc = 0;
+
+	printk(KERN_ALERT "Device write.\n");
+
+	memset(buff, 0, 100);
 	
 	while(length > 0)
 	{
 		//Writes the characters given in reverse
-		msg[count++] = arr[index--];
+		buff[count++] = arr[index--];
 		length--;
 	}
 
