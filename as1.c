@@ -2,7 +2,7 @@
 // COP 4600 - Program 2
 
 #include <linux/module.h>
-#include <linux/kernal.h>
+#include <linux/kernel.h>
 #include <linux/string.h>
 #include <linux/init.h>
 
@@ -15,7 +15,7 @@ static ssize_t s_write(struct file *, const char*, size_t, loff_t *);
 static struct file_operations fops = 
 {
 	.open = s_open,
-	.close = s_close,
+	.release = s_close,
 	.read = s_read,
 	.write = s_write
 };
